@@ -2,7 +2,7 @@ from typing import Literal
 
 from fastapi import FastAPI
 from fastapi.middleware.cors import CORSMiddleware
-from pydantic import BaseModel, Field
+from pydantic import BaseModel
 
 
 app = FastAPI(title="Proration Calculator API")
@@ -18,10 +18,10 @@ app.add_middleware(
 
 
 class ProrationRequest(BaseModel):
-    old_price: float = Field(ge=0)
-    new_price: float = Field(ge=0)
-    days_remaining: int = Field(ge=0)
-    days_in_actual_month: int = Field(ge=1, le=31)
+    old_price: float
+    new_price: float
+    days_remaining: float
+    days_in_actual_month: float
     spec: Literal["v1", "v2"]
 
 
@@ -44,10 +44,12 @@ def calculate_charge(request: ProrationRequest):
     price_difference = request.new_price - request.old_price
 
     if request.spec == "v1":
-        divisor = 30
+        charge = price_difference * (
+            request.days_remaining / 30.0
+        )
     else:
-        divisor = request.days_in_actual_month
-
-    charge = price_difference * (request.days_remaining / divisor)
+        charge = price_difference * (
+            request.days_remaining / request.days_in_actual_month
+        )
 
     return {"charge": charge}
